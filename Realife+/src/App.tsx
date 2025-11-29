@@ -1,51 +1,34 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { type FinancialContext, type Goal, type Transaction, type ToolRegistry } from './types';
 import GoalCard from './components/GoalCard';
 import Chatbot from './components/Chatbot';
 import { IncomeExpenseChart, CategoryPieChart } from './components/ChartComponents';
-import { WalletIcon, TrendingUpIcon, TrendingDownIcon, UserIcon, PieChartIcon } from './components/Icons';
+import { WalletIcon, TrendingUpIcon, TrendingDownIcon, UserIcon, PieChartIcon, PlusIcon, RepeatIcon, ChevronLeftIcon, ChevronRightIcon, TargetIcon, TrashIcon } from './components/Icons';
+import AddTransactionModal from './components/AddTransactionModal';
+import AddGoalModal from './components/AddGoalModal';
+import ProfileModal from './components/ProfileModal';
 
-// Default Data (Used only if LocalStorage is empty)
-const DEFAULT_GOALS: Goal[] = [
+// Mock Data for initial state if empty
+const MOCK_GOALS: Goal[] = [
   {
     id: '1',
     name: 'AirPods Pro 2',
     targetAmount: 249,
-    currentAmount: 0,
-    deadline: '2024-12-25',
+    currentAmount: 180,
+    deadline: '2023-12-25',
     icon: 'headphones',
     color: 'from-pink-500 to-rose-500'
   },
-  {
-    id: '2',
-    name: 'Dream Vacation',
-    targetAmount: 2000,
-    currentAmount: 500,
-    deadline: '2025-06-01',
-    icon: 'plane',
-    color: 'from-cyan-500 to-blue-500'
-  }
 ];
 
-const DEFAULT_TRANSACTIONS: Transaction[] = [
-  { id: '1', date: new Date().toISOString().split('T')[0], category: 'Income', amount: 3000, type: 'income', merchant: 'Initial Balance' },
+const INITIAL_TRANSACTIONS: Transaction[] = [
+  { id: '1', date: new Date().toISOString().split('T')[0], category: 'Income', amount: 2500.00, type: 'income', merchant: 'Salary' },
 ];
-
-const DEFAULT_CONTEXT: FinancialContext = {
-  totalBalance: 3000,
-  monthlyIncome: 3000,
-  monthlyExpense: 0,
-  topExpenseCategory: 'None',
-  goals: DEFAULT_GOALS,
-  recentTransactions: DEFAULT_TRANSACTIONS
-};
-
-const STORAGE_KEY = 'neonbudget_data_v1';
 
 const StatCard = ({ title, value, subtext, icon, trend }: any) => (
   <div className="bg-surface border border-white/5 rounded-2xl p-5 hover:border-white/10 transition-colors">
     <div className="flex justify-between items-start mb-4">
-      <div className={`p-2 rounded-lg ${trend === 'up' ? 'bg-emerald-500/10 text-emerald-400' : trend === 'down' ? 'bg-rose-500/10 text-rose-400' : 'bg-slate-700/50 text-slate-400'}`}>
+      <div className={`p-2 rounded-lg ${trend === 'up' ? 'bg-emerald-500/10 text-emerald-400' : 'bg-rose-500/10 text-rose-400'}`}>
         {icon}
       </div>
     </div>
@@ -56,101 +39,189 @@ const StatCard = ({ title, value, subtext, icon, trend }: any) => (
 );
 
 export default function App() {
-  // Load initial state from LocalStorage or Fallback
-  const [context, setContext] = useState<FinancialContext>(() => {
-    try {
-      const saved = localStorage.getItem(STORAGE_KEY);
-      return saved ? JSON.parse(saved) : DEFAULT_CONTEXT;
-    } catch (e) {
-      console.error("Failed to load state", e);
-      return DEFAULT_CONTEXT;
-    }
+  const [userName, setUserName] = useState(() => localStorage.getItem('neon_username') || 'Alex');
+  
+  const [transactions, setTransactions] = useState<Transaction[]>(() => {
+    const saved = localStorage.getItem('neon_transactions');
+    return saved ? JSON.parse(saved) : INITIAL_TRANSACTIONS;
   });
 
-  // Persist to LocalStorage whenever context changes
-  useEffect(() => {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(context));
-  }, [context]);
+  const [goals, setGoals] = useState<Goal[]>(() => {
+    const saved = localStorage.getItem('neon_goals');
+    return saved ? JSON.parse(saved) : MOCK_GOALS;
+  });
+  
+  const [isTxModalOpen, setIsTxModalOpen] = useState(false);
+  const [isGoalModalOpen, setIsGoalModalOpen] = useState(false);
+  const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
+  
+  const [currentGoalIndex, setCurrentGoalIndex] = useState(0);
+  const [chartView, setChartView] = useState<'month' | 'year'>('year');
 
-  // Actions exposed to the Chatbot (Tool Registry)
+  // Persistence
+  useEffect(() => { localStorage.setItem('neon_username', userName); }, [userName]);
+  useEffect(() => { localStorage.setItem('neon_transactions', JSON.stringify(transactions)); }, [transactions]);
+  useEffect(() => { localStorage.setItem('neon_goals', JSON.stringify(goals)); }, [goals]);
+
+  // --- Actions ---
+
+  const handleAddTransaction = (newTx: Omit<Transaction, 'id' | 'date'>) => {
+    const transaction: Transaction = {
+      ...newTx,
+      id: Date.now().toString(),
+      date: new Date().toISOString().split('T')[0], // YYYY-MM-DD
+    };
+    setTransactions(prev => [transaction, ...prev]);
+  };
+
+  const handleDeleteTransaction = (id: string) => {
+    setTransactions(prev => prev.filter(t => t.id !== id));
+  };
+
+  const handleAddGoal = (newGoal: Omit<Goal, 'id'>) => {
+    const goal: Goal = {
+      ...newGoal,
+      id: Date.now().toString(),
+    };
+    setGoals(prev => [...prev, goal]);
+    setCurrentGoalIndex(goals.length);
+  };
+
+  const handleDeleteGoal = (id: string) => {
+    const newGoals = goals.filter(g => g.id !== id);
+    setGoals(newGoals);
+    if (currentGoalIndex >= newGoals.length) {
+      setCurrentGoalIndex(Math.max(0, newGoals.length - 1));
+    }
+  };
+
+  const handleAddFundsToGoal = (amount: number) => {
+    if (goals.length === 0) return;
+    
+    // 1. Update Goal Amount
+    const updatedGoals = [...goals];
+    const goal = updatedGoals[currentGoalIndex];
+    goal.currentAmount += amount;
+    setGoals(updatedGoals);
+
+    // 2. Create Expense Transaction
+    handleAddTransaction({
+      amount: amount,
+      type: 'expense',
+      category: 'Savings',
+      merchant: `Transfer to ${goal.name}`,
+    });
+  };
+
+  const handleResetData = () => {
+    localStorage.removeItem('neon_transactions');
+    localStorage.removeItem('neon_goals');
+    localStorage.removeItem('neon_username');
+    window.location.reload();
+  };
+
+  const nextGoal = () => setCurrentGoalIndex((prev) => (prev + 1) % goals.length);
+  const prevGoal = () => setCurrentGoalIndex((prev) => (prev - 1 + goals.length) % goals.length);
+
+  // --- Chatbot Tool Registry ---
+  // Connects Gemini tool calls to the App's state handlers
   const chatbotActions: ToolRegistry = {
     add_transaction: (args: any) => {
-      const { merchant, amount, category, type, date } = args;
-      const numAmount = Number(amount);
-      
-      const newTx: Transaction = {
-        id: Date.now().toString(),
-        merchant: merchant || 'Unknown',
-        amount: numAmount,
-        category: category || 'General',
-        type: type as 'income' | 'expense',
-        date: date || new Date().toISOString().split('T')[0]
-      };
-
-      setContext(prev => {
-        const newBalance = type === 'income' 
-          ? prev.totalBalance + numAmount 
-          : prev.totalBalance - numAmount;
-        
-        const newExpense = type === 'expense' 
-          ? prev.monthlyExpense + numAmount 
-          : prev.monthlyExpense;
-
-        // Simple logic to determine top category
-        // In a real app, this would recalculate aggregates
-        const currentTop = type === 'expense' ? category : prev.topExpenseCategory;
-
-        return {
-          ...prev,
-          totalBalance: newBalance,
-          monthlyExpense: newExpense,
-          topExpenseCategory: currentTop,
-          recentTransactions: [newTx, ...prev.recentTransactions]
-        };
+      handleAddTransaction({
+        merchant: args.merchant,
+        amount: args.amount,
+        category: args.category,
+        type: args.type,
       });
-
-      return `Transaction added: ${type} of $${numAmount} at ${merchant}.`;
+      return `Transaction added: ${args.type} $${args.amount} at ${args.merchant}`;
     },
-
     create_goal: (args: any) => {
-      const { name, targetAmount, deadline } = args;
-      const newGoal: Goal = {
-        id: Date.now().toString(),
-        name,
-        targetAmount: Number(targetAmount),
+      handleAddGoal({
+        name: args.name,
+        targetAmount: args.targetAmount,
+        deadline: args.deadline,
         currentAmount: 0,
-        deadline: deadline || '2025-12-31',
         icon: 'star',
         color: 'from-violet-500 to-purple-500'
-      };
-
-      setContext(prev => ({
-        ...prev,
-        goals: [...prev.goals, newGoal]
-      }));
-
-      return `Goal created: ${name} targeting $${targetAmount}.`;
+      });
+      return `Goal created: ${args.name}`;
     },
-
     update_income: (args: any) => {
-      const { amount } = args;
-      setContext(prev => ({
-        ...prev,
-        monthlyIncome: Number(amount)
-      }));
-      return `Monthly income updated to $${amount}.`;
+      // Since monthly income is derived from transactions, we add an income transaction
+      handleAddTransaction({
+        merchant: 'Income Adjustment',
+        amount: args.amount,
+        category: 'Salary',
+        type: 'income',
+        isRecurring: true,
+        recurringFrequency: 'monthly'
+      });
+      return `Income updated via new transaction.`;
     }
   };
 
-  const resetData = () => {
-    if(confirm("Are you sure you want to reset all data?")) {
-      setContext(DEFAULT_CONTEXT);
-    }
-  };
+  // --- Context Calculation ---
+
+  const context: FinancialContext = useMemo(() => {
+    const startBalance = 0; // Assuming 0 start, purely based on transactions history
+    const totalBalance = startBalance + transactions.reduce((acc, t) => acc + (t.type === 'income' ? t.amount : -t.amount), 0);
+    
+    const monthlyIncome = transactions
+      .filter(t => t.type === 'income')
+      .reduce((acc, t) => acc + t.amount, 0);
+      
+    const monthlyExpense = transactions
+      .filter(t => t.type === 'expense')
+      .reduce((acc, t) => acc + t.amount, 0);
+
+    // Calculate top category
+    const categoryTotals: Record<string, number> = {};
+    transactions.filter(t => t.type === 'expense').forEach(t => {
+      categoryTotals[t.category] = (categoryTotals[t.category] || 0) + t.amount;
+    });
+    
+    let topExpenseCategory = 'None';
+    let maxVal = 0;
+    Object.entries(categoryTotals).forEach(([cat, val]) => {
+      if (val > maxVal) {
+        maxVal = val;
+        topExpenseCategory = cat;
+      }
+    });
+
+    return {
+      totalBalance,
+      monthlyIncome,
+      monthlyExpense,
+      topExpenseCategory,
+      goals: goals,
+      recentTransactions: transactions
+    };
+  }, [transactions, goals]);
 
   return (
-    <div className="min-h-screen bg-background text-slate-100 p-4 md:p-8 flex flex-col md:flex-row gap-6 overflow-hidden mx-auto">
+    <div className="min-h-screen bg-background text-slate-100 p-4 md:p-8 flex flex-col md:flex-row gap-6 overflow-hidden max-w-[1600px] mx-auto">
       
+      <AddTransactionModal 
+        isOpen={isTxModalOpen}
+        onClose={() => setIsTxModalOpen(false)}
+        onSave={handleAddTransaction}
+      />
+
+      <AddGoalModal 
+        isOpen={isGoalModalOpen}
+        onClose={() => setIsGoalModalOpen(false)}
+        onSave={handleAddGoal}
+      />
+
+      <ProfileModal 
+        isOpen={isProfileModalOpen}
+        onClose={() => setIsProfileModalOpen(false)}
+        userName={userName}
+        onUpdateName={setUserName}
+        onResetData={handleResetData}
+      />
+
       {/* Left Column: Dashboard */}
       <div className="flex-1 flex flex-col gap-6 overflow-y-auto pr-0 md:pr-2 scrollbar-hide h-[calc(100vh-4rem)]">
         
@@ -160,115 +231,190 @@ export default function App() {
             <h1 className="text-2xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-indigo-400 to-cyan-400">
               NeonBudget
             </h1>
-            <p className="text-sm text-slate-400">AI-Powered Finance</p>
+            <p className="text-sm text-slate-400">Welcome back, {userName}</p>
           </div>
-          <div className="flex gap-2">
-             <button onClick={resetData} className="text-xs text-slate-500 hover:text-red-400 transition-colors px-3">
-               Reset Data
-             </button>
-            <button className="p-2 rounded-full bg-surface border border-white/5 hover:bg-slate-800 transition-colors">
-              <UserIcon className="w-5 h-5 text-slate-300" />
-            </button>
-          </div>
+          <button 
+            onClick={() => setIsProfileModalOpen(true)}
+            className="p-2 rounded-full bg-surface border border-white/5 hover:bg-slate-800 transition-colors"
+          >
+            <UserIcon className="w-5 h-5 text-slate-300" />
+          </button>
         </header>
 
         {/* Key Stats Row */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           <StatCard 
             title="Total Balance" 
-            value={`$${context.totalBalance.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`} 
+            value={`$${context.totalBalance.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}`} 
             subtext="Available funds"
             icon={<WalletIcon className="w-5 h-5" />}
-            trend={context.totalBalance > 0 ? 'up' : 'down'}
+            trend="up"
           />
           <StatCard 
-            title="Monthly Income" 
+            title="Total Income" 
             value={`$${context.monthlyIncome.toLocaleString()}`} 
-            subtext="Recurring"
+            subtext="Lifetime inflows"
             icon={<TrendingUpIcon className="w-5 h-5" />}
             trend="up"
           />
           <StatCard 
-            title="Monthly Spend" 
+            title="Total Expenses" 
             value={`$${context.monthlyExpense.toLocaleString()}`} 
-            subtext={`Top: ${context.topExpenseCategory}`}
+            subtext={`${context.topExpenseCategory} is top spend`}
             icon={<TrendingDownIcon className="w-5 h-5" />}
             trend="down"
           />
         </div>
 
-        {/* Main Charts & Goals Layout */}
+        {/* Charts & Goals */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           
-          {/* Main Chart Section */}
+          {/* Main Chart */}
           <div className="lg:col-span-2 bg-surface border border-white/5 rounded-2xl p-6">
             <div className="flex justify-between items-center mb-6">
               <h2 className="text-lg font-bold text-white">Cash Flow</h2>
               <div className="flex gap-2">
-                <span className="text-xs px-3 py-1 rounded-full bg-slate-800 text-slate-300 border border-white/5 cursor-pointer hover:bg-slate-700">Month</span>
+                <button 
+                  onClick={() => setChartView('month')}
+                  className={`text-xs px-3 py-1 rounded-full border border-white/5 cursor-pointer transition-all ${
+                    chartView === 'month' ? 'bg-indigo-600 text-white shadow-lg' : 'bg-slate-800 text-slate-300'
+                  }`}
+                >
+                  Month
+                </button>
+                <button 
+                  onClick={() => setChartView('year')}
+                  className={`text-xs px-3 py-1 rounded-full border border-white/5 cursor-pointer transition-all ${
+                    chartView === 'year' ? 'bg-indigo-600 text-white shadow-lg' : 'bg-slate-800 text-slate-300'
+                  }`}
+                >
+                  Year
+                </button>
               </div>
             </div>
-            {/* Note: In a real app, pass dynamic data here. For now we keep the beautiful mock chart for visuals */}
-            <IncomeExpenseChart transactions={context.recentTransactions}/>
+            <IncomeExpenseChart view={chartView} transactions={transactions} />
           </div>
 
-          {/* Goal Section */}
+          {/* Goal & Pie Chart Column */}
           <div className="lg:col-span-1 flex flex-col gap-4">
-             {context.goals.length > 0 ? (
-               <GoalCard goal={context.goals[0]} />
-             ) : (
-               <div className="bg-surface border border-white/5 rounded-2xl p-6 flex items-center justify-center h-[200px] text-slate-500 text-sm">
-                 No active goals. Ask Neo to create one!
-               </div>
-             )}
+            
+            {/* Goal Carousel */}
+            <div className="relative">
+              <div className="flex justify-between items-center mb-2 px-1">
+                 <h2 className="text-sm font-bold text-slate-400 tracking-wide uppercase">Goals</h2>
+              </div>
+
+              {goals.length > 0 ? (
+                <div className="relative group min-h-[220px]">
+                   <GoalCard 
+                     goal={goals[currentGoalIndex]} 
+                     label={currentGoalIndex === 0 ? "Primary Goal" : `Goal ${currentGoalIndex + 1} of ${goals.length}`}
+                     onAddClick={() => setIsGoalModalOpen(true)}
+                     onDelete={() => handleDeleteGoal(goals[currentGoalIndex].id)}
+                     onAddFunds={handleAddFundsToGoal}
+                   />
+                   
+                   {goals.length > 1 && (
+                     <>
+                        <button onClick={prevGoal} className="absolute left-2 top-1/2 -translate-y-1/2 p-1.5 rounded-full bg-slate-900/50 backdrop-blur-sm border border-white/10 text-white opacity-0 group-hover:opacity-100 transition-opacity hover:bg-slate-800"><ChevronLeftIcon className="w-5 h-5" /></button>
+                        <button onClick={nextGoal} className="absolute right-2 top-1/2 -translate-y-1/2 p-1.5 rounded-full bg-slate-900/50 backdrop-blur-sm border border-white/10 text-white opacity-0 group-hover:opacity-100 transition-opacity hover:bg-slate-800"><ChevronRightIcon className="w-5 h-5" /></button>
+                        <div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex gap-1.5">
+                          {goals.map((_, idx) => (
+                            <div key={idx} className={`w-1.5 h-1.5 rounded-full transition-colors ${idx === currentGoalIndex ? 'bg-white' : 'bg-white/20'}`}/>
+                          ))}
+                        </div>
+                     </>
+                   )}
+                </div>
+              ) : (
+                <div 
+                   onClick={() => setIsGoalModalOpen(true)}
+                   className="h-48 rounded-2xl border-2 border-dashed border-slate-700 hover:border-indigo-500/50 flex flex-col items-center justify-center cursor-pointer transition-colors bg-surface/50"
+                >
+                   <div className="p-3 rounded-full bg-slate-800 mb-2">
+                      <TargetIcon className="w-6 h-6 text-slate-400" />
+                   </div>
+                   <span className="text-sm font-medium text-slate-400">Set a Goal</span>
+                </div>
+              )}
+            </div>
              
-             {/* Secondary small chart */}
+             {/* Pie Chart */}
              <div className="bg-surface border border-white/5 rounded-2xl p-6 flex-1 flex flex-col">
                 <div className="flex items-center gap-2 mb-4">
-                   <div className="p-1.5 rounded-lg bg-orange-500/10 text-orange-400">
-                     <PieChartIcon className="w-4 h-4" />
-                   </div>
+                   <div className="p-1.5 rounded-lg bg-orange-500/10 text-orange-400"><PieChartIcon className="w-4 h-4" /></div>
                    <h3 className="text-sm font-bold text-white">Spending</h3>
                 </div>
                 <div className="flex-1 min-h-[150px]">
-                  <CategoryPieChart transactions={context.recentTransactions}/>
+                  <CategoryPieChart transactions={transactions} />
                 </div>
              </div>
           </div>
-
         </div>
 
-        {/* Transactions */}
-        <div className="bg-surface border border-white/5 rounded-2xl p-6 mb-4">
-          <h2 className="text-lg font-bold text-white mb-4">Recent Transactions</h2>
-          <div className="space-y-4 max-h-[400px] overflow-y-auto scrollbar-hide">
-            {context.recentTransactions.length === 0 && (
-              <p className="text-slate-500 text-sm text-center py-4">No transactions yet.</p>
-            )}
+        {/* Transactions Section */}
+        <div className="bg-surface border border-white/5 rounded-2xl p-6">
+          <div className="flex items-center justify-between mb-6">
+            <h2 className="text-lg font-bold text-white">Recent Transactions</h2>
+            <button 
+              onClick={() => setIsTxModalOpen(true)}
+              className="flex items-center gap-2 px-4 py-2 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl text-sm font-medium transition-all shadow-lg shadow-indigo-500/20 active:scale-95"
+            >
+              <PlusIcon className="w-4 h-4" />
+              Add New
+            </button>
+          </div>
+          
+          <div className="space-y-4">
             {context.recentTransactions.map(t => (
-              <div key={t.id} className="flex justify-between items-center p-3 hover:bg-slate-800/50 rounded-xl transition-colors cursor-pointer group">
+              <div key={t.id} className="flex justify-between items-center p-3 hover:bg-slate-800/50 rounded-xl transition-colors group border border-transparent hover:border-white/5 relative">
                 <div className="flex items-center gap-4">
                   <div className={`w-10 h-10 rounded-full flex items-center justify-center ${t.type === 'income' ? 'bg-emerald-500/10 text-emerald-400' : 'bg-slate-800 text-slate-400'}`}>
                     {t.type === 'income' ? <TrendingUpIcon className="w-5 h-5" /> : <TrendingDownIcon className="w-5 h-5" />}
                   </div>
                   <div>
-                    <p className="font-medium text-white group-hover:text-indigo-400 transition-colors">{t.merchant}</p>
+                    <div className="flex items-center gap-2">
+                      <p className="font-medium text-white">{t.merchant}</p>
+                      {t.isRecurring && (
+                        <span title={`Recurring (${t.recurringFrequency || 'monthly'})`} className="text-indigo-400 bg-indigo-500/10 p-0.5 rounded">
+                          <RepeatIcon className="w-3 h-3" />
+                        </span>
+                      )}
+                    </div>
                     <p className="text-xs text-slate-500">{t.date} • {t.category}</p>
                   </div>
                 </div>
-                <span className={`font-semibold ${t.type === 'income' ? 'text-emerald-400' : 'text-white'}`}>
-                  {t.type === 'income' ? '+' : '-'}${t.amount.toFixed(2)}
-                </span>
+                
+                <div className="flex items-center gap-4">
+                  <span className={`font-semibold ${t.type === 'income' ? 'text-emerald-400' : 'text-white'}`}>
+                    {t.type === 'income' ? '+' : '-'}${t.amount.toFixed(2)}
+                  </span>
+                  <button 
+                    onClick={(e) => { e.stopPropagation(); handleDeleteTransaction(t.id); }}
+                    className="p-2 text-slate-600 hover:text-rose-500 opacity-0 group-hover:opacity-100 transition-all"
+                    title="Delete Transaction"
+                  >
+                    <TrashIcon className="w-4 h-4" />
+                  </button>
+                </div>
               </div>
             ))}
+            
+            {context.recentTransactions.length === 0 && (
+              <div className="text-center py-8 text-slate-500 text-sm">
+                No transactions yet. Start by adding one!
+              </div>
+            )}
           </div>
         </div>
-
       </div>
 
       {/* Right Column: Chatbot */}
       <div className="w-full md:w-[350px] lg:w-[400px] h-[500px] md:h-[calc(100vh-4rem)] flex-shrink-0">
-        <Chatbot context={context} actions={chatbotActions} />
+        <Chatbot 
+          context={context} 
+          actions={chatbotActions}
+        />
       </div>
 
     </div>

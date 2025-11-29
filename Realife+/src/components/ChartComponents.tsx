@@ -161,7 +161,7 @@ export const CategoryPieChart = ({ transactions }: { transactions: Transaction[]
             verticalAlign="bottom" 
             height={36} 
             iconType="circle"
-            formatter={(value: any) => <span style={{ color: '#94a3b8' }}>{value}</span>}
+            formatter={(value) => <span style={{ color: '#94a3b8' }}>{value}</span>}
           />
         </PieChart>
       </ResponsiveContainer>
