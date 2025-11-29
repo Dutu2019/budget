@@ -267,7 +267,7 @@ export default function App() {
   }, [transactions, goals]);
 
   return (
-    <div className="min-h-screen bg-background text-slate-100 p-4 md:p-8 flex flex-col md:flex-row gap-6 overflow-hidden max-w-[1600px] mx-auto">
+    <div className="min-h-screen bg-background text-slate-100 p-4 md:p-8 flex flex-col md:flex-row gap-6 overflow-hidden mx-auto">
       <AddTransactionModal
         isOpen={isTxModalOpen}
         onClose={() => setIsTxModalOpen(false)}
