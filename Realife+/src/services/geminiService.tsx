@@ -39,7 +39,6 @@ export const initializeChat = async (context: FinancialContext) => {
     });
     
     chatSession = chat;
-    console.log("Chat initialized with context");
     return true;
   } catch (error) {
     console.error("Failed to initialize chat", error);

@@ -5,56 +5,49 @@ import Chatbot from './components/Chatbot';
 import { IncomeExpenseChart, CategoryPieChart } from './components/ChartComponents';
 import { WalletIcon, TrendingUpIcon, TrendingDownIcon, UserIcon, PieChartIcon } from './components/Icons';
 
-// Mock Data
-const MOCK_GOALS: Goal[] = [
+// Default Data (Used only if LocalStorage is empty)
+const DEFAULT_GOALS: Goal[] = [
   {
     id: '1',
     name: 'AirPods Pro 2',
     targetAmount: 249,
-    currentAmount: 180,
-    deadline: '2023-12-25',
+    currentAmount: 0,
+    deadline: '2024-12-25',
     icon: 'headphones',
-    color: 'from-pink-500 to-rose-500' // Using Tailwind gradient classes
+    color: 'from-pink-500 to-rose-500'
   },
   {
     id: '2',
-    name: 'Bali Trip',
+    name: 'Dream Vacation',
     targetAmount: 2000,
-    currentAmount: 850,
-    deadline: '2024-06-01',
+    currentAmount: 500,
+    deadline: '2025-06-01',
     icon: 'plane',
     color: 'from-cyan-500 to-blue-500'
   }
 ];
 
-const MOCK_TRANSACTIONS: Transaction[] = [
-  { id: '1', date: '2023-10-24', category: 'Food', amount: 45.50, type: 'expense', merchant: 'Whole Foods' },
-  { id: '2', date: '2023-10-23', category: 'Transport', amount: 12.00, type: 'expense', merchant: 'Uber' },
-  { id: '3', date: '2023-10-22', category: 'Income', amount: 2500.00, type: 'income', merchant: 'Salary' },
-  { id: '4', date: '2023-10-21', category: 'Tech', amount: 29.99, type: 'expense', merchant: 'Netflix' },
-  { id: '5', date: '2023-10-20', category: 'Shopping', amount: 120.00, type: 'expense', merchant: 'Nike' },
+const DEFAULT_TRANSACTIONS: Transaction[] = [
+  { id: '1', date: new Date().toISOString().split('T')[0], category: 'Income', amount: 3000, type: 'income', merchant: 'Initial Balance' },
 ];
 
-const MOCK_CONTEXT: FinancialContext = {
-  totalBalance: 12450.75,
-  monthlyIncome: 4200,
-  monthlyExpense: 2350,
-  topExpenseCategory: 'Housing',
-  goals: MOCK_GOALS,
-  recentTransactions: MOCK_TRANSACTIONS
+const DEFAULT_CONTEXT: FinancialContext = {
+  totalBalance: 3000,
+  monthlyIncome: 3000,
+  monthlyExpense: 0,
+  topExpenseCategory: 'None',
+  goals: DEFAULT_GOALS,
+  recentTransactions: DEFAULT_TRANSACTIONS
 };
+
+const STORAGE_KEY = 'neonbudget_data_v1';
 
 const StatCard = ({ title, value, subtext, icon, trend }: any) => (
   <div className="bg-surface border border-white/5 rounded-2xl p-5 hover:border-white/10 transition-colors">
     <div className="flex justify-between items-start mb-4">
-      <div className={`p-2 rounded-lg ${trend === 'up' ? 'bg-emerald-500/10 text-emerald-400' : 'bg-rose-500/10 text-rose-400'}`}>
+      <div className={`p-2 rounded-lg ${trend === 'up' ? 'bg-emerald-500/10 text-emerald-400' : trend === 'down' ? 'bg-rose-500/10 text-rose-400' : 'bg-slate-700/50 text-slate-400'}`}>
         {icon}
       </div>
-      {trend && (
-        <span className={`text-xs font-medium px-2 py-1 rounded-full ${trend === 'up' ? 'bg-emerald-500/10 text-emerald-400' : 'bg-rose-500/10 text-rose-400'}`}>
-          {trend === 'up' ? '+12.5%' : '-2.4%'}
-        </span>
-      )}
     </div>
     <h3 className="text-slate-400 text-sm font-medium">{title}</h3>
     <p className="text-2xl font-bold text-white mt-1">{value}</p>
@@ -63,12 +56,102 @@ const StatCard = ({ title, value, subtext, icon, trend }: any) => (
 );
 
 export default function App() {
-  const [context, setContext] = useState<FinancialContext>(MOCK_CONTEXT);
+  // Load initial state from LocalStorage or Fallback
+  const [context, setContext] = useState<FinancialContext>(() => {
+    try {
+      const saved = localStorage.getItem(STORAGE_KEY);
+      return saved ? JSON.parse(saved) : DEFAULT_CONTEXT;
+    } catch (e) {
+      console.error("Failed to load state", e);
+      return DEFAULT_CONTEXT;
+    }
+  });
+
+  // Persist to LocalStorage whenever context changes
+  useEffect(() => {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(context));
+  }, [context]);
+
+  // Actions exposed to the Chatbot (Tool Registry)
+  const chatbotActions = {
+    add_transaction: (args: any) => {
+      const { merchant, amount, category, type, date } = args;
+      const numAmount = Number(amount);
+      
+      const newTx: Transaction = {
+        id: Date.now().toString(),
+        merchant: merchant || 'Unknown',
+        amount: numAmount,
+        category: category || 'General',
+        type: type as 'income' | 'expense',
+        date: date || new Date().toISOString().split('T')[0]
+      };
+
+      setContext(prev => {
+        const newBalance = type === 'income' 
+          ? prev.totalBalance + numAmount 
+          : prev.totalBalance - numAmount;
+        
+        const newExpense = type === 'expense' 
+          ? prev.monthlyExpense + numAmount 
+          : prev.monthlyExpense;
+
+        // Simple logic to determine top category
+        // In a real app, this would recalculate aggregates
+        const currentTop = type === 'expense' ? category : prev.topExpenseCategory;
+
+        return {
+          ...prev,
+          totalBalance: newBalance,
+          monthlyExpense: newExpense,
+          topExpenseCategory: currentTop,
+          recentTransactions: [newTx, ...prev.recentTransactions]
+        };
+      });
+
+      return `Transaction added: ${type} of $${numAmount} at ${merchant}.`;
+    },
+
+    create_goal: (args: any) => {
+      const { name, targetAmount, deadline } = args;
+      const newGoal: Goal = {
+        id: Date.now().toString(),
+        name,
+        targetAmount: Number(targetAmount),
+        currentAmount: 0,
+        deadline: deadline || '2025-12-31',
+        icon: 'star',
+        color: 'from-violet-500 to-purple-500'
+      };
+
+      setContext(prev => ({
+        ...prev,
+        goals: [...prev.goals, newGoal]
+      }));
+
+      return `Goal created: ${name} targeting $${targetAmount}.`;
+    },
+
+    update_income: (args: any) => {
+      const { amount } = args;
+      setContext(prev => ({
+        ...prev,
+        monthlyIncome: Number(amount)
+      }));
+      return `Monthly income updated to $${amount}.`;
+    }
+  };
+
+  const resetData = () => {
+    if(confirm("Are you sure you want to reset all data?")) {
+      setContext(DEFAULT_CONTEXT);
+    }
+  };
 
   return (
-    <div className="min-h-screen bg-background text-slate-100 p-4 md:p-8 flex flex-col md:flex-row gap-6 overflow-hidden mx-auto">
+    <div className="min-h-screen bg-background text-slate-100 p-4 md:p-8 flex flex-col md:flex-row gap-6 overflow-hidden max-w-[1600px] mx-auto">
       
-      {/* Left Column: Dashboard (2/3 width on desktop) */}
+      {/* Left Column: Dashboard */}
       <div className="flex-1 flex flex-col gap-6 overflow-y-auto pr-0 md:pr-2 scrollbar-hide h-[calc(100vh-4rem)]">
         
         {/* Header */}
@@ -77,33 +160,38 @@ export default function App() {
             <h1 className="text-2xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-indigo-400 to-cyan-400">
               NeonBudget
             </h1>
-            <p className="text-sm text-slate-400">Welcome back, Alex</p>
+            <p className="text-sm text-slate-400">AI-Powered Finance</p>
           </div>
-          <button className="p-2 rounded-full bg-surface border border-white/5 hover:bg-slate-800 transition-colors">
-            <UserIcon className="w-5 h-5 text-slate-300" />
-          </button>
+          <div className="flex gap-2">
+             <button onClick={resetData} className="text-xs text-slate-500 hover:text-red-400 transition-colors px-3">
+               Reset Data
+             </button>
+            <button className="p-2 rounded-full bg-surface border border-white/5 hover:bg-slate-800 transition-colors">
+              <UserIcon className="w-5 h-5 text-slate-300" />
+            </button>
+          </div>
         </header>
 
         {/* Key Stats Row */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           <StatCard 
             title="Total Balance" 
-            value={`$${context.totalBalance.toLocaleString()}`} 
+            value={`$${context.totalBalance.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`} 
             subtext="Available funds"
             icon={<WalletIcon className="w-5 h-5" />}
-            trend="up"
+            trend={context.totalBalance > 0 ? 'up' : 'down'}
           />
           <StatCard 
             title="Monthly Income" 
             value={`$${context.monthlyIncome.toLocaleString()}`} 
-            subtext="Main source: Salary"
+            subtext="Recurring"
             icon={<TrendingUpIcon className="w-5 h-5" />}
             trend="up"
           />
           <StatCard 
             title="Monthly Spend" 
             value={`$${context.monthlyExpense.toLocaleString()}`} 
-            subtext="20% under budget"
+            subtext={`Top: ${context.topExpenseCategory}`}
             icon={<TrendingDownIcon className="w-5 h-5" />}
             trend="down"
           />
@@ -118,15 +206,21 @@ export default function App() {
               <h2 className="text-lg font-bold text-white">Cash Flow</h2>
               <div className="flex gap-2">
                 <span className="text-xs px-3 py-1 rounded-full bg-slate-800 text-slate-300 border border-white/5 cursor-pointer hover:bg-slate-700">Month</span>
-                <span className="text-xs px-3 py-1 rounded-full bg-indigo-600 text-white cursor-pointer shadow-lg shadow-indigo-500/20">Year</span>
               </div>
             </div>
+            {/* Note: In a real app, pass dynamic data here. For now we keep the beautiful mock chart for visuals */}
             <IncomeExpenseChart />
           </div>
 
           {/* Goal Section */}
           <div className="lg:col-span-1 flex flex-col gap-4">
-             <GoalCard goal={context.goals[0]} />
+             {context.goals.length > 0 ? (
+               <GoalCard goal={context.goals[0]} />
+             ) : (
+               <div className="bg-surface border border-white/5 rounded-2xl p-6 flex items-center justify-center h-[200px] text-slate-500 text-sm">
+                 No active goals. Ask Neo to create one!
+               </div>
+             )}
              
              {/* Secondary small chart */}
              <div className="bg-surface border border-white/5 rounded-2xl p-6 flex-1 flex flex-col">
@@ -144,10 +238,13 @@ export default function App() {
 
         </div>
 
-        {/* Transactions (Simplified) */}
-        <div className="bg-surface border border-white/5 rounded-2xl p-6">
+        {/* Transactions */}
+        <div className="bg-surface border border-white/5 rounded-2xl p-6 mb-4">
           <h2 className="text-lg font-bold text-white mb-4">Recent Transactions</h2>
-          <div className="space-y-4">
+          <div className="space-y-4 max-h-[400px] overflow-y-auto scrollbar-hide">
+            {context.recentTransactions.length === 0 && (
+              <p className="text-slate-500 text-sm text-center py-4">No transactions yet.</p>
+            )}
             {context.recentTransactions.map(t => (
               <div key={t.id} className="flex justify-between items-center p-3 hover:bg-slate-800/50 rounded-xl transition-colors cursor-pointer group">
                 <div className="flex items-center gap-4">
@@ -168,10 +265,12 @@ export default function App() {
         </div>
 
       </div>
-        <div>
-          {/* Chatbot*/}
-          <Chatbot context={context} />
-        </div>
+
+      {/* Right Column: Chatbot */}
+      <div className="w-full md:w-[350px] lg:w-[400px] h-[500px] md:h-[calc(100vh-4rem)] flex-shrink-0">
+        <Chatbot context={context} actions={chatbotActions} />
+      </div>
+
     </div>
   );
 }
