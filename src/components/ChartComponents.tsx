@@ -1,4 +1,4 @@
-import React, { useMemo } from 'react';
+import { useMemo } from "react";
 import {
   AreaChart,
   Area,
@@ -10,19 +10,29 @@ import {
   PieChart,
   Pie,
   Cell,
-  Legend
-} from 'recharts';
-import { type Transaction } from '../types';
+  Legend,
+} from "recharts";
+import { type Transaction } from "../types";
 
-const COLORS = ['#6366f1', '#ec4899', '#06b6d4', '#8b5cf6', '#10b981', '#f59e0b', '#ef4444'];
+const COLORS = [
+  "#6366f1",
+  "#ec4899",
+  "#06b6d4",
+  "#8b5cf6",
+  "#10b981",
+  "#f59e0b",
+  "#ef4444",
+];
 
 interface IncomeExpenseChartProps {
-  view?: 'month' | 'year';
+  view?: "month" | "year";
   transactions: Transaction[];
 }
 
-export const IncomeExpenseChart: React.FC<IncomeExpenseChartProps> = ({ view = 'year', transactions }) => {
-  
+export const IncomeExpenseChart: React.FC<IncomeExpenseChartProps> = ({
+  view = "year",
+  transactions,
+}) => {
   const data = useMemo(() => {
     const today = new Date();
     today.setHours(0, 0, 0, 0);
@@ -165,12 +175,12 @@ export const IncomeExpenseChart: React.FC<IncomeExpenseChartProps> = ({ view = '
         >
           <defs>
             <linearGradient id="colorIncome" x1="0" y1="0" x2="0" y2="1">
-              <stop offset="5%" stopColor="#06b6d4" stopOpacity={0.8}/>
-              <stop offset="95%" stopColor="#06b6d4" stopOpacity={0}/>
+              <stop offset="5%" stopColor="#06b6d4" stopOpacity={0.8} />
+              <stop offset="95%" stopColor="#06b6d4" stopOpacity={0} />
             </linearGradient>
             <linearGradient id="colorExpense" x1="0" y1="0" x2="0" y2="1">
-              <stop offset="5%" stopColor="#ec4899" stopOpacity={0.8}/>
-              <stop offset="95%" stopColor="#ec4899" stopOpacity={0}/>
+              <stop offset="5%" stopColor="#ec4899" stopOpacity={0.8} />
+              <stop offset="95%" stopColor="#ec4899" stopOpacity={0} />
             </linearGradient>
           </defs>
           <CartesianGrid strokeDasharray="3 3" stroke="#334155" opacity={0.5} />
@@ -186,21 +196,21 @@ export const IncomeExpenseChart: React.FC<IncomeExpenseChartProps> = ({ view = '
           <Tooltip 
             contentStyle={{ backgroundColor: '#1e293b', border: 'none', borderRadius: '8px', color: '#f8fafc' }}
           />
-          <Area 
-            type="monotone" 
-            dataKey="income" 
-            stroke="#06b6d4" 
-            fillOpacity={1} 
-            fill="url(#colorIncome)" 
+          <Area
+            type="monotone"
+            dataKey="income"
+            stroke="#06b6d4"
+            fillOpacity={1}
+            fill="url(#colorIncome)"
             strokeWidth={2}
             animationDuration={1000}
           />
-          <Area 
-            type="monotone" 
-            dataKey="expense" 
-            stroke="#ec4899" 
-            fillOpacity={1} 
-            fill="url(#colorExpense)" 
+          <Area
+            type="monotone"
+            dataKey="expense"
+            stroke="#ec4899"
+            fillOpacity={1}
+            fill="url(#colorExpense)"
             strokeWidth={2}
             animationDuration={1000}
           />
@@ -210,20 +220,24 @@ export const IncomeExpenseChart: React.FC<IncomeExpenseChartProps> = ({ view = '
   );
 };
 
-export const CategoryPieChart = ({ transactions }: { transactions: Transaction[] }) => {
+export const CategoryPieChart = ({
+  transactions,
+}: {
+  transactions: Transaction[];
+}) => {
   const data = useMemo(() => {
-    const expenses = transactions.filter(t => t.type === 'expense');
+    const expenses = transactions.filter((t) => t.type === "expense");
     const categoryMap: Record<string, number> = {};
-    
-    expenses.forEach(t => {
-       categoryMap[t.category] = (categoryMap[t.category] || 0) + t.amount;
+
+    expenses.forEach((t) => {
+      categoryMap[t.category] = (categoryMap[t.category] || 0) + t.amount;
     });
 
     const result = Object.entries(categoryMap)
       .map(([name, value]) => ({ name, value }))
       .sort((a, b) => b.value - a.value);
 
-    return result.length > 0 ? result : [{ name: 'No Data', value: 1 }];
+    return result.length > 0 ? result : [{ name: "No Data", value: 1 }];
   }, [transactions]);
 
   return (
@@ -240,18 +254,33 @@ export const CategoryPieChart = ({ transactions }: { transactions: Transaction[]
             dataKey="value"
           >
             {data.map((entry, index) => (
-              <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} stroke="none" />
+              <Cell
+                key={`cell-${index}`}
+                fill={
+                  entry.name === "No Data"
+                    ? "#334155"
+                    : COLORS[index % COLORS.length]
+                }
+                stroke="none"
+              />
             ))}
           </Pie>
-          <Tooltip 
-             contentStyle={{ backgroundColor: '#1e293b', border: 'none', borderRadius: '8px', color: '#f8fafc' }}
-             itemStyle={{ color: '#f8fafc' }}
+          <Tooltip
+            contentStyle={{
+              backgroundColor: "#1e293b",
+              border: "none",
+              borderRadius: "8px",
+              color: "#f8fafc",
+            }}
+            itemStyle={{ color: "#f8fafc" }}
           />
-          <Legend 
-            verticalAlign="bottom" 
-            height={36} 
+          <Legend
+            verticalAlign="bottom"
+            height={36}
             iconType="circle"
-            formatter={(value) => <span style={{ color: '#94a3b8' }}>{value}</span>}
+            formatter={(value) => (
+              <span style={{ color: "#94a3b8" }}>{value}</span>
+            )}
           />
         </PieChart>
       </ResponsiveContainer>
