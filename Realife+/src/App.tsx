@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { type FinancialContext, type Goal, type Transaction } from './types';
 import GoalCard from './components/GoalCard';
+import Chatbot from './components/Chatbot';
 import { IncomeExpenseChart, CategoryPieChart } from './components/ChartComponents';
 import { WalletIcon, TrendingUpIcon, TrendingDownIcon, UserIcon, PieChartIcon } from './components/Icons';
 
@@ -65,7 +66,7 @@ export default function App() {
   const [context, setContext] = useState<FinancialContext>(MOCK_CONTEXT);
 
   return (
-    <div className="min-h-screen bg-background text-slate-100 p-4 md:p-8 flex flex-col md:flex-row gap-6 overflow-hidden max-w-[1600px] mx-auto">
+    <div className="min-h-screen bg-background text-slate-100 p-4 md:p-8 flex flex-col md:flex-row gap-6 overflow-hidden mx-auto">
       
       {/* Left Column: Dashboard (2/3 width on desktop) */}
       <div className="flex-1 flex flex-col gap-6 overflow-y-auto pr-0 md:pr-2 scrollbar-hide h-[calc(100vh-4rem)]">
@@ -167,6 +168,10 @@ export default function App() {
         </div>
 
       </div>
+        <div>
+          {/* Chatbot*/}
+          <Chatbot context={context} />
+        </div>
     </div>
   );
 }

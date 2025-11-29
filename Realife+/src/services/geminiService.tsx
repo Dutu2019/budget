@@ -1,11 +1,10 @@
-import { GoogleGenAI, ChatSession, GenerativeModel } from "@google/genai";
+import { GoogleGenAI, Chat } from "@google/genai";
 import { type FinancialContext } from '../types';
 
-let chatSession: ChatSession | null = null;
-let model: GenerativeModel | null = null;
+let chatSession: Chat | null = null;
 
 const getSystemInstruction = (context: FinancialContext): string => {
-  return `You are Neo, a sophisticated AI financial assistant for the 'NeonBudget' app. 
+  return `You are Neo, a sophisticated AI financial assistant for the 'Realife+' app. 
   Your tone is concise, modern, and encouraging. You interpret the user's financial data to provide insights.
   
   CURRENT USER FINANCIAL CONTEXT:
@@ -20,14 +19,12 @@ const getSystemInstruction = (context: FinancialContext): string => {
   1. If the user asks about their budget, use the provided context numbers.
   2. Keep answers short (under 3 sentences) unless asked for a detailed breakdown.
   3. Be proactive: suggest saving tips if expenses are high.
-  4. Use emoji occasionally to keep it friendly.
   `;
 };
 
 export const initializeChat = async (context: FinancialContext) => {
   try {
-    const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
-    model = ai.models;
+    const ai = new GoogleGenAI({ apiKey: import.meta.env.VITE_API_KEY });
     
     // We create a chat session but we don't strictly need to store it if we re-initialize with context often.
     // However, keeping history is good. Ideally, we update the system instruction dynamically, 
@@ -42,6 +39,7 @@ export const initializeChat = async (context: FinancialContext) => {
     });
     
     chatSession = chat;
+    console.log("Chat initialized with context");
     return true;
   } catch (error) {
     console.error("Failed to initialize chat", error);
@@ -58,7 +56,7 @@ export const sendMessageToGemini = async (message: string): Promise<string> => {
     const result = await chatSession.sendMessage({
       message: message
     });
-    return result.text;
+    return result.text || "";
   } catch (error) {
     console.error("Gemini API Error:", error);
     return "I'm having trouble connecting to the financial network right now. Please try again later.";
