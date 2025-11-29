@@ -1,3 +1,4 @@
+import React, { useMemo } from 'react';
 import {
   AreaChart,
   Area,
@@ -11,33 +12,72 @@ import {
   Cell,
   Legend
 } from 'recharts';
+import { type Transaction } from '../types';
 
-const incomeData = [
-  { name: 'Jan', income: 4000, expense: 2400 },
-  { name: 'Feb', income: 3000, expense: 1398 },
-  { name: 'Mar', income: 2000, expense: 9800 },
-  { name: 'Apr', income: 2780, expense: 3908 },
-  { name: 'May', income: 1890, expense: 4800 },
-  { name: 'Jun', income: 2390, expense: 3800 },
-  { name: 'Jul', income: 3490, expense: 4300 },
-];
+const COLORS = ['#6366f1', '#ec4899', '#06b6d4', '#8b5cf6', '#10b981', '#f59e0b', '#ef4444'];
 
-const categoryData = [
-  { name: 'Housing', value: 1200 },
-  { name: 'Food', value: 800 },
-  { name: 'Tech', value: 450 },
-  { name: 'Transport', value: 300 },
-  { name: 'Ent', value: 200 },
-];
+interface IncomeExpenseChartProps {
+  view?: 'month' | 'year';
+  transactions: Transaction[];
+}
 
-const COLORS = ['#6366f1', '#ec4899', '#06b6d4', '#8b5cf6', '#10b981'];
+export const IncomeExpenseChart: React.FC<IncomeExpenseChartProps> = ({ view = 'year', transactions }) => {
+  
+  const data = useMemo(() => {
+    if (view === 'year') {
+      // Group by Month (last 12 months usually, but for simplicity, grouped by month name of all tx)
+      const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+      const grouped = months.map(m => ({ name: m, income: 0, expense: 0 }));
 
-export const IncomeExpenseChart = () => {
+      transactions.forEach(t => {
+        const date = new Date(t.date);
+        const monthIndex = date.getMonth();
+        if (t.type === 'income') {
+          grouped[monthIndex].income += t.amount;
+        } else {
+          grouped[monthIndex].expense += t.amount;
+        }
+      });
+      return grouped;
+    } else {
+      // Month View: Filter for current month, group by date
+      const now = new Date();
+      const currentMonth = now.getMonth();
+      const currentYear = now.getFullYear();
+
+      const currentMonthTx = transactions.filter(t => {
+        const d = new Date(t.date);
+        return d.getMonth() === currentMonth && d.getFullYear() === currentYear;
+      });
+
+      // Group by specific date
+      const daysMap: Record<string, { income: number, expense: number }> = {};
+      
+      currentMonthTx.forEach(t => {
+        const day = new Date(t.date).getDate();
+        const key = `Day ${day}`;
+        if (!daysMap[key]) daysMap[key] = { income: 0, expense: 0 };
+        
+        if (t.type === 'income') daysMap[key].income += t.amount;
+        else daysMap[key].expense += t.amount;
+      });
+
+      // If no data for current month, return at least one empty point
+      if (Object.keys(daysMap).length === 0) {
+        return [{ name: 'Today', income: 0, expense: 0 }];
+      }
+
+      return Object.entries(daysMap)
+        .sort((a, b) => parseInt(a[0].split(' ')[1]) - parseInt(b[0].split(' ')[1]))
+        .map(([name, vals]) => ({ name, ...vals }));
+    }
+  }, [view, transactions]);
+
   return (
     <div className="h-64 w-full">
       <ResponsiveContainer width="100%" height="100%">
         <AreaChart
-          data={incomeData}
+          data={data}
           margin={{ top: 10, right: 10, left: -20, bottom: 0 }}
         >
           <defs>
@@ -63,6 +103,7 @@ export const IncomeExpenseChart = () => {
             fillOpacity={1} 
             fill="url(#colorIncome)" 
             strokeWidth={2}
+            animationDuration={1000}
           />
           <Area 
             type="monotone" 
@@ -71,6 +112,7 @@ export const IncomeExpenseChart = () => {
             fillOpacity={1} 
             fill="url(#colorExpense)" 
             strokeWidth={2}
+            animationDuration={1000}
           />
         </AreaChart>
       </ResponsiveContainer>
@@ -78,13 +120,28 @@ export const IncomeExpenseChart = () => {
   );
 };
 
-export const CategoryPieChart = () => {
+export const CategoryPieChart = ({ transactions }: { transactions: Transaction[] }) => {
+  const data = useMemo(() => {
+    const expenses = transactions.filter(t => t.type === 'expense');
+    const categoryMap: Record<string, number> = {};
+    
+    expenses.forEach(t => {
+       categoryMap[t.category] = (categoryMap[t.category] || 0) + t.amount;
+    });
+
+    const result = Object.entries(categoryMap)
+      .map(([name, value]) => ({ name, value }))
+      .sort((a, b) => b.value - a.value);
+
+    return result.length > 0 ? result : [{ name: 'No Data', value: 1 }];
+  }, [transactions]);
+
   return (
     <div className="h-64 w-full">
       <ResponsiveContainer width="100%" height="100%">
         <PieChart>
           <Pie
-            data={categoryData}
+            data={data}
             cx="50%"
             cy="50%"
             innerRadius={60}
@@ -92,7 +149,7 @@ export const CategoryPieChart = () => {
             paddingAngle={5}
             dataKey="value"
           >
-            {categoryData.map((entry, index) => (
+            {data.map((entry, index) => (
               <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} stroke="none" />
             ))}
           </Pie>
@@ -104,7 +161,7 @@ export const CategoryPieChart = () => {
             verticalAlign="bottom" 
             height={36} 
             iconType="circle"
-            formatter={(value) => <span style={{ color: '#94a3b8' }}>{value}</span>}
+            formatter={(value: any) => <span style={{ color: '#94a3b8' }}>{value}</span>}
           />
         </PieChart>
       </ResponsiveContainer>
