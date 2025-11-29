@@ -26,7 +26,7 @@ const GoalCard: React.FC<GoalCardProps> = ({ goal, label = "Primary Goal", onAdd
   };
 
   return (
-    <div className="relative overflow-hidden rounded-2xl bg-surface border border-white/5 p-6 shadow-xl hover:border-white/10 transition-colors group h-full flex flex-col justify-between">
+    <div className="relative overflow-hidden rounded-2xl bg-surface border border-white/5 py-6 px-10 shadow-xl hover:border-white/10 transition-colors group h-full flex flex-col justify-between">
       {/* Background glow effect */}
       <div className={`absolute -right-10 -top-10 h-32 w-32 rounded-full bg-gradient-to-br ${goal.color} opacity-10 blur-3xl group-hover:opacity-20 transition-opacity pointer-events-none`}></div>
       
