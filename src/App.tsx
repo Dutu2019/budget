@@ -1,9 +1,9 @@
-import React, { useState, useEffect, useMemo } from 'react';
-import { type FinancialContext, type Goal, type Transaction, type ToolRegistry } from './types';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
+import { type FinancialContext, type Goal, type Transaction } from './types';
 import GoalCard from './components/GoalCard';
-import Chatbot from './components/Chatbot';
+import Chatbot, { type ChatbotHandle } from './components/Chatbot';
 import { IncomeExpenseChart, CategoryPieChart } from './components/ChartComponents';
-import { WalletIcon, TrendingUpIcon, TrendingDownIcon, UserIcon, PieChartIcon, PlusIcon, RepeatIcon, ChevronLeftIcon, ChevronRightIcon, TargetIcon, TrashIcon } from './components/Icons';
+import { WalletIcon, TrendingUpIcon, TrendingDownIcon, UserIcon, PieChartIcon, PlusIcon, RepeatIcon, ChevronLeftIcon, ChevronRightIcon, TargetIcon, TrashIcon, BotIcon } from './components/Icons';
 import AddTransactionModal from './components/AddTransactionModal';
 import AddGoalModal from './components/AddGoalModal';
 import ProfileModal from './components/ProfileModal';
@@ -12,17 +12,31 @@ import ProfileModal from './components/ProfileModal';
 const MOCK_GOALS: Goal[] = [
   {
     id: '1',
-    name: 'AirPods Pro 2',
-    targetAmount: 249,
-    currentAmount: 180,
-    deadline: '2023-12-25',
-    icon: 'headphones',
+    name: 'Spring Break Trip',
+    targetAmount: 800,
+    currentAmount: 350,
+    deadline: '2024-03-15',
+    icon: 'star',
     color: 'from-pink-500 to-rose-500'
   },
+  {
+    id: '2',
+    name: 'New Laptop',
+    targetAmount: 1200,
+    currentAmount: 400,
+    deadline: '2024-08-20',
+    icon: 'laptop',
+    color: 'from-cyan-500 to-blue-500'
+  }
 ];
 
+// Student-oriented initial transactions
 const INITIAL_TRANSACTIONS: Transaction[] = [
-  { id: '1', date: new Date().toISOString().split('T')[0], category: 'Income', amount: 2500.00, type: 'income', merchant: 'Salary' },
+  { id: '1', date: new Date().toISOString().split('T')[0], category: 'Income', amount: 1200.00, type: 'income', merchant: 'Part-time Job' },
+  { id: '2', date: new Date().toISOString().split('T')[0], category: 'Books', amount: 85.00, type: 'expense', merchant: 'University Bookstore' },
+  { id: '3', date: new Date(Date.now() - 86400000).toISOString().split('T')[0], category: 'Food', amount: 25.50, type: 'expense', merchant: 'Campus Cafeteria' },
+  { id: '4', date: new Date(Date.now() - 172800000).toISOString().split('T')[0], category: 'Transport', amount: 45.00, type: 'expense', merchant: 'Monthly Bus Pass' },
+  { id: '5', date: new Date(Date.now() - 259200000).toISOString().split('T')[0], category: 'Leisure', amount: 15.00, type: 'expense', merchant: 'Cinema Student Ticket' },
 ];
 
 const StatCard = ({ title, value, subtext, icon, trend }: any) => (
@@ -39,7 +53,7 @@ const StatCard = ({ title, value, subtext, icon, trend }: any) => (
 );
 
 export default function App() {
-  const [userName, setUserName] = useState(() => localStorage.getItem('neon_username') || 'Alex');
+  const [userName, setUserName] = useState(() => localStorage.getItem('neon_username') || 'Student');
   
   const [transactions, setTransactions] = useState<Transaction[]>(() => {
     const saved = localStorage.getItem('neon_transactions');
@@ -56,7 +70,9 @@ export default function App() {
   const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
   
   const [currentGoalIndex, setCurrentGoalIndex] = useState(0);
-  const [chartView, setChartView] = useState<'month' | 'year'>('year');
+  const [chartView, setChartView] = useState<'month' | 'year'>('month'); // Default to month for better detail
+
+  const chatbotRef = useRef<ChatbotHandle>(null);
 
   // Persistence
   useEffect(() => { localStorage.setItem('neon_username', userName); }, [userName]);
@@ -120,45 +136,20 @@ export default function App() {
     window.location.reload();
   };
 
-  const nextGoal = () => setCurrentGoalIndex((prev) => (prev + 1) % goals.length);
-  const prevGoal = () => setCurrentGoalIndex((prev) => (prev - 1 + goals.length) % goals.length);
-
-  // --- Chatbot Tool Registry ---
-  // Connects Gemini tool calls to the App's state handlers
-  const chatbotActions: ToolRegistry = {
-    add_transaction: (args: any) => {
-      handleAddTransaction({
-        merchant: args.merchant,
-        amount: args.amount,
-        category: args.category,
-        type: args.type,
-      });
-      return `Transaction added: ${args.type} $${args.amount} at ${args.merchant}`;
-    },
-    create_goal: (args: any) => {
-      handleAddGoal({
-        name: args.name,
-        targetAmount: args.targetAmount,
-        deadline: args.deadline,
-        currentAmount: 0,
-        icon: 'star',
-        color: 'from-violet-500 to-purple-500'
-      });
-      return `Goal created: ${args.name}`;
-    },
-    update_income: (args: any) => {
-      // Since monthly income is derived from transactions, we add an income transaction
-      handleAddTransaction({
-        merchant: 'Income Adjustment',
-        amount: args.amount,
-        category: 'Salary',
-        type: 'income',
-        isRecurring: true,
-        recurringFrequency: 'monthly'
-      });
-      return `Income updated via new transaction.`;
+  const handleAskNeoAnalysis = () => {
+    if (chatbotRef.current) {
+      const now = new Date();
+      const monthName = now.toLocaleString('default', { month: 'long' });
+      const prompt = chartView === 'month'
+        ? `Analyze my rolling 30-day cash flow (centered on today, ${monthName} ${now.getDate()}). Look at my recent transaction history. Do I have any spending spikes? What categories are highest?`
+        : `Analyze my yearly spending trends based on my transaction history. Am I saving enough?`;
+      
+      chatbotRef.current.sendMessage(prompt);
     }
   };
+
+  const nextGoal = () => setCurrentGoalIndex((prev) => (prev + 1) % goals.length);
+  const prevGoal = () => setCurrentGoalIndex((prev) => (prev - 1 + goals.length) % goals.length);
 
   // --- Context Calculation ---
 
@@ -216,7 +207,7 @@ export default function App() {
 
       <ProfileModal 
         isOpen={isProfileModalOpen}
-        onClose={() => setIsProfileModalOpen(false)}
+      onClose={() => setIsProfileModalOpen(false)}
         userName={userName}
         onUpdateName={setUserName}
         onResetData={handleResetData}
@@ -229,7 +220,7 @@ export default function App() {
         <header className="flex justify-between items-center mb-2">
           <div>
             <h1 className="text-2xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-indigo-400 to-cyan-400">
-              NeonBudget
+              Realife+
             </h1>
             <p className="text-sm text-slate-400">Welcome back, {userName}</p>
           </div>
@@ -270,21 +261,21 @@ export default function App() {
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           
           {/* Main Chart */}
-          <div className="lg:col-span-2 bg-surface border border-white/5 rounded-2xl p-6">
+          <div className="lg:col-span-2 bg-surface border border-white/5 rounded-2xl p-6 flex flex-col">
             <div className="flex justify-between items-center mb-6">
               <h2 className="text-lg font-bold text-white">Cash Flow</h2>
               <div className="flex gap-2">
                 <button 
                   onClick={() => setChartView('month')}
-                  className={`text-xs px-3 py-1 rounded-full border border-white/5 cursor-pointer transition-all ${
+                  className={`text-xs px-3 py-1 rounded-full border border-white/5 cursor-pointer transition-all select-none focus:outline-none focus:ring-0 ${
                     chartView === 'month' ? 'bg-indigo-600 text-white shadow-lg' : 'bg-slate-800 text-slate-300'
                   }`}
                 >
-                  Month
+                  30 Day
                 </button>
                 <button 
                   onClick={() => setChartView('year')}
-                  className={`text-xs px-3 py-1 rounded-full border border-white/5 cursor-pointer transition-all ${
+                  className={`text-xs px-3 py-1 rounded-full border border-white/5 cursor-pointer transition-all select-none focus:outline-none focus:ring-0 ${
                     chartView === 'year' ? 'bg-indigo-600 text-white shadow-lg' : 'bg-slate-800 text-slate-300'
                   }`}
                 >
@@ -293,6 +284,17 @@ export default function App() {
               </div>
             </div>
             <IncomeExpenseChart view={chartView} transactions={transactions} />
+            
+            {/* Ask Neo Button */}
+            <div className="mt-4 flex justify-end">
+              <button 
+                onClick={handleAskNeoAnalysis}
+                className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-indigo-500/10 text-indigo-400 border border-indigo-500/20 hover:bg-indigo-500/20 text-xs font-medium transition-all"
+              >
+                <BotIcon className="w-3.5 h-3.5" />
+                Ask Neo?
+              </button>
+            </div>
           </div>
 
           {/* Goal & Pie Chart Column */}
@@ -412,8 +414,10 @@ export default function App() {
       {/* Right Column: Chatbot */}
       <div className="w-full md:w-[350px] lg:w-[400px] h-[500px] md:h-[calc(100vh-4rem)] flex-shrink-0">
         <Chatbot 
+          ref={chatbotRef}
           context={context} 
-          actions={chatbotActions}
+          onAddTransaction={handleAddTransaction}
+          onAddGoal={handleAddGoal}
         />
       </div>
 

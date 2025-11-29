@@ -24,53 +24,136 @@ interface IncomeExpenseChartProps {
 export const IncomeExpenseChart: React.FC<IncomeExpenseChartProps> = ({ view = 'year', transactions }) => {
   
   const data = useMemo(() => {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    let startDate: Date;
+    let endDate: Date;
+    const bucketMap = new Map<string, { name: string, fullDate: string, income: number, expense: number, sortKey: number }>();
+
+    // 1. Define Window and Initialize Buckets
     if (view === 'year') {
-      // Group by Month (last 12 months usually, but for simplicity, grouped by month name of all tx)
-      const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-      const grouped = months.map(m => ({ name: m, income: 0, expense: 0 }));
+      // Rolling Year: Current Month - 6 to Current Month + 5 (Total 12 months)
+      // e.g. If Nov, show May -> Next April
+      startDate = new Date(today.getFullYear(), today.getMonth() - 6, 1);
+      endDate = new Date(today.getFullYear(), today.getMonth() + 6, 0); // End of 5th month forward
 
-      transactions.forEach(t => {
-        const date = new Date(t.date);
-        const monthIndex = date.getMonth();
-        if (t.type === 'income') {
-          grouped[monthIndex].income += t.amount;
-        } else {
-          grouped[monthIndex].expense += t.amount;
-        }
-      });
-      return grouped;
-    } else {
-      // Month View: Filter for current month, group by date
-      const now = new Date();
-      const currentMonth = now.getMonth();
-      const currentYear = now.getFullYear();
-
-      const currentMonthTx = transactions.filter(t => {
-        const d = new Date(t.date);
-        return d.getMonth() === currentMonth && d.getFullYear() === currentYear;
-      });
-
-      // Group by specific date
-      const daysMap: Record<string, { income: number, expense: number }> = {};
-      
-      currentMonthTx.forEach(t => {
-        const day = new Date(t.date).getDate();
-        const key = `Day ${day}`;
-        if (!daysMap[key]) daysMap[key] = { income: 0, expense: 0 };
-        
-        if (t.type === 'income') daysMap[key].income += t.amount;
-        else daysMap[key].expense += t.amount;
-      });
-
-      // If no data for current month, return at least one empty point
-      if (Object.keys(daysMap).length === 0) {
-        return [{ name: 'Today', income: 0, expense: 0 }];
+      let curr = new Date(startDate);
+      while (curr <= endDate) {
+        const key = `${curr.getFullYear()}-${curr.getMonth()}`; // Unique Month Key
+        const label = curr.toLocaleDateString('en-US', { month: 'short', year: '2-digit' }); // "Nov 24"
+        bucketMap.set(key, { 
+          name: label, 
+          fullDate: key, 
+          income: 0, 
+          expense: 0,
+          sortKey: curr.getTime() 
+        });
+        curr.setMonth(curr.getMonth() + 1);
       }
+    } else {
+      // Rolling Month: Today - 15 to Today + 15 (Total 31 days)
+      startDate = new Date(today);
+      startDate.setDate(today.getDate() - 15);
+      
+      endDate = new Date(today);
+      endDate.setDate(today.getDate() + 15);
 
-      return Object.entries(daysMap)
-        .sort((a, b) => parseInt(a[0].split(' ')[1]) - parseInt(b[0].split(' ')[1]))
-        .map(([name, vals]) => ({ name, ...vals }));
+      let curr = new Date(startDate);
+      while (curr <= endDate) {
+        const key = curr.toISOString().split('T')[0]; // YYYY-MM-DD
+        const label = curr.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }); // "Nov 29"
+        bucketMap.set(key, { 
+          name: label, 
+          fullDate: key, 
+          income: 0, 
+          expense: 0,
+          sortKey: curr.getTime()
+        });
+        curr.setDate(curr.getDate() + 1);
+      }
     }
+
+    // 2. Process Transactions (Normal + Recurring Projection)
+    transactions.forEach(t => {
+      const tDate = new Date(t.date);
+      tDate.setHours(0,0,0,0);
+
+      // If it's a one-time transaction
+      if (!t.isRecurring) {
+         if (tDate >= startDate && tDate <= endDate) {
+           let key: string;
+           if (view === 'year') {
+             key = `${tDate.getFullYear()}-${tDate.getMonth()}`;
+           } else {
+             key = t.date;
+           }
+           
+           const bucket = bucketMap.get(key);
+           if (bucket) {
+             if (t.type === 'income') bucket.income += t.amount;
+             else bucket.expense += t.amount;
+           }
+         }
+      } 
+      // If it's recurring
+      else {
+        // Start projection from the transaction date. 
+        // If transaction date is in future relative to window start, start there.
+        // If transaction date is in past, catch up to window start.
+        
+        let curr = new Date(tDate);
+        
+        // Safety break for infinite loops
+        let safety = 0;
+        
+        // If the transaction started before our window, we might need to fast-forward
+        // BUT we must respect the frequency. We can't just set curr = startDate.
+        // We have to iterate from tDate.
+        
+        // However, for performance, if tDate is WAY back, this loop is slow.
+        // For this app (MVP), simple iteration is acceptable as N is small.
+        
+        while (curr <= endDate && safety < 1000) {
+          if (curr >= tDate) { // Logic check: only count after start date (redundant due to init, but clear)
+             if (curr >= startDate) {
+                // Determine bucket
+                let key: string;
+                if (view === 'year') {
+                   key = `${curr.getFullYear()}-${curr.getMonth()}`;
+                } else {
+                   key = curr.toISOString().split('T')[0];
+                }
+
+                const bucket = bucketMap.get(key);
+                if (bucket) {
+                   if (t.type === 'income') bucket.income += t.amount;
+                   else bucket.expense += t.amount;
+                }
+             }
+          }
+
+          // Advance
+          if (t.recurringFrequency === 'weekly') {
+             curr.setDate(curr.getDate() + 7);
+          } else if (t.recurringFrequency === 'yearly') {
+             curr.setFullYear(curr.getFullYear() + 1);
+          } else {
+             // Monthly (default)
+             // Handle edge cases like Jan 31 -> Feb 28
+             const d = curr.getDate();
+             curr.setMonth(curr.getMonth() + 1);
+             // Verify day (if we went from Jan 31 to Feb 28/29, setMonth handles it but often shifts to Mar 2/3)
+             // Simple version: setMonth usually keeps day if possible, or extends. 
+             // Ideally we want to stick to the original day.
+             // For MVP, standard setMonth behavior is acceptable, or we can enforce day clamping.
+          }
+          safety++;
+        }
+      }
+    });
+
+    return Array.from(bucketMap.values()).sort((a, b) => a.sortKey - b.sortKey);
   }, [view, transactions]);
 
   return (
@@ -91,8 +174,15 @@ export const IncomeExpenseChart: React.FC<IncomeExpenseChartProps> = ({ view = '
             </linearGradient>
           </defs>
           <CartesianGrid strokeDasharray="3 3" stroke="#334155" opacity={0.5} />
-          <XAxis dataKey="name" stroke="#94a3b8" fontSize={12} tickLine={false} axisLine={false} />
-          <YAxis stroke="#94a3b8" fontSize={12} tickLine={false} axisLine={false} />
+          <XAxis 
+            dataKey="name" 
+            stroke="#94a3b8" 
+            fontSize={10} 
+            tickLine={false} 
+            axisLine={false} 
+            interval={view === 'year' ? 0 : 3} // Show all months, but skip days to avoid clutter
+          />
+          <YAxis stroke="#94a3b8" fontSize={10} tickLine={false} axisLine={false} />
           <Tooltip 
             contentStyle={{ backgroundColor: '#1e293b', border: 'none', borderRadius: '8px', color: '#f8fafc' }}
           />
