@@ -277,7 +277,7 @@ export const IncomeExpenseChart: React.FC<IncomeExpenseChartProps> = ({
             step="0.1"
             value={zoomLevel}
             onChange={(e) => setZoomLevel(parseFloat(e.target.value))}
-            className="absolute w-[23rem] h-1 bg-slate-600 rounded-lg appearance-none cursor-pointer origin-center -rotate-90 accent-indigo-500 hover:accent-indigo-400"
+            className="absolute w-16 md:w-32 lg:w-[23rem] h-1 bg-slate-600 rounded-lg appearance-none cursor-pointer origin-center -rotate-90 accent-indigo-500 hover:accent-indigo-400"
           />
         </div>
 

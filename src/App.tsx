@@ -267,7 +267,7 @@ export default function App() {
   }, [transactions, goals]);
 
   return (
-    <div className="min-h-screen bg-background text-slate-100 p-4 md:p-8 flex flex-col md:flex-row gap-6 overflow-hidden mx-auto">
+    <div className="min-h-screen bg-background text-slate-100 p-4 md:p-8 flex flex-col lg:flex-row gap-6 overflow-hidden mx-auto">
       <AddTransactionModal
         isOpen={isTxModalOpen}
         onClose={() => setIsTxModalOpen(false)}
@@ -337,7 +337,7 @@ export default function App() {
         {/* Charts & Goals */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           {/* Main Chart */}
-          <div className="lg:col-span-2 bg-surface border border-white/5 rounded-2xl p-6 flex flex-col">
+          <div className="lg:col-span-2 bg-surface h-[30em] lg:h-auto border border-white/5 rounded-2xl p-6 flex flex-col">
             <div className="flex justify-between items-center mb-6">
               <h2 className="text-lg font-bold text-white">Cash Flow</h2>
               <div className="flex gap-2">
