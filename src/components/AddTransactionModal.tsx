@@ -41,8 +41,8 @@ const AddTransactionModal: React.FC<AddTransactionModalProps> = ({ isOpen, onClo
   };
 
   const categories = type === 'expense' 
-    ? ['Food', 'Transport', 'Housing', 'Tech', 'Entertainment', 'Shopping', 'Utilities']
-    : ['Salary', 'Freelance', 'Investment', 'Gift', 'Other'];
+    ? ['Food', 'Transport', 'Books', 'Leisure', 'Housing', 'Tech', 'Entertainment', 'Shopping', 'Utilities']
+    : ['Salary', 'Part-time Job', 'Freelance', 'Investment', 'Gift', 'Other'];
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
