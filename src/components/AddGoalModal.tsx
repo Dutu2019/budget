@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { type Goal } from '../types';
 import { XIcon, TargetIcon } from './Icons';
 

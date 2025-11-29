@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { XIcon, UserIcon, TrashIcon, SaveIcon } from './Icons';
 
 interface ProfileModalProps {
