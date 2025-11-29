@@ -1,18 +1,20 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { type ChatMessage, type FinancialContext } from '../types';
-import { initializeChat, sendMessageToGemini } from '../services/geminiService';
+import { type ChatMessage, type FinancialContext, type Transaction, type Goal } from '../types';
+import { initializeChat, getChatSession } from '../services/geminiService';
 import { BotIcon, SendIcon, LoaderIcon } from './Icons';
 
 interface ChatbotProps {
   context: FinancialContext;
+  onAddTransaction: (tx: Omit<Transaction, 'id' | 'date'>) => void;
+  onAddGoal: (goal: Omit<Goal, 'id'>) => void;
 }
 
-const Chatbot: React.FC<ChatbotProps> = ({ context }) => {
+const Chatbot: React.FC<ChatbotProps> = ({ context, onAddTransaction, onAddGoal }) => {
   const [messages, setMessages] = useState<ChatMessage[]>([
     {
       id: 'welcome',
       role: 'model',
-      text: "Hello! I'm Neo. How can I help you with your budget today?",
+      text: "Hello! I'm Neo. Tell me about your spending or new goals, and I'll update your dashboard.",
       timestamp: new Date()
     }
   ]);
@@ -21,9 +23,8 @@ const Chatbot: React.FC<ChatbotProps> = ({ context }) => {
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    // Initialize chat when context is available or changes significantly
     initializeChat(context);
-  }, [context]);
+  }, [context.totalBalance]); // Re-init when balance changes to keep context fresh
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -49,16 +50,76 @@ const Chatbot: React.FC<ChatbotProps> = ({ context }) => {
     setIsLoading(true);
 
     try {
-      const responseText = await sendMessageToGemini(userMsg.text);
+      const chat = getChatSession();
+      if (!chat) throw new Error("Chat not initialized");
+
+      let result = await chat.sendMessage({ message: userMsg.text });
+      
+      // Handle Function Calls loop
+      // Gemini 2.5 Flash might return function calls in the candidates
+      const functionCalls = result.functionCalls;
+
+      if (functionCalls && functionCalls.length > 0) {
+         const functionResponses = [];
+
+         for (const call of functionCalls) {
+            // Fix: Destructure with default value to handle undefined args
+            const { name, args = {} } = call;
+            let functionResult = { result: 'Success' };
+
+            if (name === 'addTransaction') {
+               onAddTransaction({
+                  amount: args.amount as number,
+                  type: args.type as 'income' | 'expense',
+                  category: args.category as string,
+                  merchant: args.merchant as string,
+                  isRecurring: args.isRecurring as boolean,
+                  recurringFrequency: args.recurringFrequency as any
+               });
+               functionResult = { result: `Transaction added: ${args.merchant} $${args.amount}` };
+            } else if (name === 'addGoal') {
+               onAddGoal({
+                  name: args.name as string,
+                  targetAmount: args.targetAmount as number,
+                  deadline: args.deadline as string || new Date().toISOString().split('T')[0],
+                  currentAmount: 0,
+                  icon: 'star',
+                  color: 'from-violet-500 to-purple-500'
+               });
+               functionResult = { result: `Goal created: ${args.name}` };
+            }
+
+            functionResponses.push({
+               id: call.id,
+               name: call.name,
+               response: functionResult
+            });
+         }
+
+         // Send result back to model
+         // Note: result.functionCalls returns the calls. We need to send the response back.
+         // passing 'parts' is the correct way to send function responses in the new SDK
+         result = await chat.sendMessage({
+            message: functionResponses.map(fr => ({ functionResponse: fr }))
+         });
+      }
+
       const modelMsg: ChatMessage = {
         id: (Date.now() + 1).toString(),
         role: 'model',
-        text: responseText,
+        text: result.text || "Done.",
         timestamp: new Date()
       };
       setMessages(prev => [...prev, modelMsg]);
+
     } catch (error) {
       console.error(error);
+      setMessages(prev => [...prev, {
+         id: Date.now().toString(),
+         role: 'model',
+         text: "I encountered a connection error. Please try again.",
+         timestamp: new Date()
+      }]);
     } finally {
       setIsLoading(false);
     }
@@ -99,7 +160,7 @@ const Chatbot: React.FC<ChatbotProps> = ({ context }) => {
           <div className="flex justify-start">
             <div className="bg-slate-800 rounded-2xl rounded-bl-none p-3 border border-white/5 flex items-center gap-2">
               <LoaderIcon className="w-4 h-4 animate-spin text-indigo-400" />
-              <span className="text-xs text-slate-400">Thinking...</span>
+              <span className="text-xs text-slate-400">Processing...</span>
             </div>
           </div>
         )}
@@ -113,7 +174,7 @@ const Chatbot: React.FC<ChatbotProps> = ({ context }) => {
             type="text"
             value={input}
             onChange={(e) => setInput(e.target.value)}
-            placeholder="Ask about your budget..."
+            placeholder="Try 'Add expense $20 for Pizza'..."
             className="w-full bg-slate-900/50 border border-white/10 rounded-xl pl-4 pr-12 py-3 text-sm text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/50 transition-all"
           />
           <button

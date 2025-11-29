@@ -5,6 +5,8 @@ export interface Transaction {
   amount: number;
   type: 'income' | 'expense';
   merchant: string;
+  isRecurring?: boolean;
+  recurringFrequency?: 'weekly' | 'monthly' | 'yearly';
 }
 
 export interface Goal {
