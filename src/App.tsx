@@ -26,68 +26,68 @@ import ProfileModal from "./components/ProfileModal";
 
 // Mock Data for initial state if empty
 const MOCK_GOALS: Goal[] = [
-  {
-    id: "1",
-    name: "Spring Break Trip",
-    targetAmount: 800,
-    currentAmount: 350,
-    deadline: "2024-03-15",
-    icon: "star",
-    color: "from-pink-500 to-rose-500",
-  },
-  {
-    id: "2",
-    name: "New Laptop",
-    targetAmount: 1200,
-    currentAmount: 400,
-    deadline: "2024-08-20",
-    icon: "laptop",
-    color: "from-cyan-500 to-blue-500",
-  },
+  // {
+  //   id: "1",
+  //   name: "Spring Break Trip",
+  //   targetAmount: 800,
+  //   currentAmount: 350,
+  //   deadline: "2024-03-15",
+  //   icon: "star",
+  //   color: "from-pink-500 to-rose-500",
+  // },
+  // {
+  //   id: "2",
+  //   name: "New Laptop",
+  //   targetAmount: 1200,
+  //   currentAmount: 400,
+  //   deadline: "2024-08-20",
+  //   icon: "laptop",
+  //   color: "from-cyan-500 to-blue-500",
+  // },
 ];
 
 // Student-oriented initial transactions
 const INITIAL_TRANSACTIONS: Transaction[] = [
-  {
-    id: "1",
-    date: new Date().toISOString().split("T")[0],
-    category: "Income",
-    amount: 1200.0,
-    type: "income",
-    merchant: "Part-time Job",
-  },
-  {
-    id: "2",
-    date: new Date().toISOString().split("T")[0],
-    category: "Books",
-    amount: 85.0,
-    type: "expense",
-    merchant: "University Bookstore",
-  },
-  {
-    id: "3",
-    date: new Date(Date.now() - 86400000).toISOString().split("T")[0],
-    category: "Food",
-    amount: 25.5,
-    type: "expense",
-    merchant: "Campus Cafeteria",
-  },
-  {
-    id: "4",
-    date: new Date(Date.now() - 172800000).toISOString().split("T")[0],
-    category: "Transport",
-    amount: 45.0,
-    type: "expense",
-    merchant: "Monthly Bus Pass",
-  },
-  {
-    id: "5",
-    date: new Date(Date.now() - 259200000).toISOString().split("T")[0],
-    category: "Leisure",
-    amount: 15.0,
-    type: "expense",
-    merchant: "Cinema Student Ticket",
-  },
+  // {
+  //   id: "1",
+  //   date: new Date().toISOString().split("T")[0],
+  //   category: "Income",
+  //   amount: 1200.0,
+  //   type: "income",
+  //   merchant: "Part-time Job",
+  // },
+  // {
+  //   id: "2",
+  //   date: new Date().toISOString().split("T")[0],
+  //   category: "Books",
+  //   amount: 85.0,
+  //   type: "expense",
+  //   merchant: "University Bookstore",
+  // },
+  // {
+  //   id: "3",
+  //   date: new Date(Date.now() - 86400000).toISOString().split("T")[0],
+  //   category: "Food",
+  //   amount: 25.5,
+  //   type: "expense",
+  //   merchant: "Campus Cafeteria",
+  // },
+  // {
+  //   id: "4",
+  //   date: new Date(Date.now() - 172800000).toISOString().split("T")[0],
+  //   category: "Transport",
+  //   amount: 45.0,
+  //   type: "expense",
+  //   merchant: "Monthly Bus Pass",
+  // },
+  // {
+  //   id: "5",
+  //   date: new Date(Date.now() - 259200000).toISOString().split("T")[0],
+  //   category: "Leisure",
+  //   amount: 15.0,
+  //   type: "expense",
+  //   merchant: "Cinema Student Ticket",
+  // },
 ];
 
 const StatCard = ({ title, value, subtext, icon, trend }: any) => (
