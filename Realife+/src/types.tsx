@@ -40,3 +40,5 @@ export interface FinancialContext {
   goals: Goal[];
   recentTransactions: Transaction[];
 }
+
+export type ToolRegistry = Record<string, (args: any) => any>;
