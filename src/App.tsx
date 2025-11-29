@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo, useRef } from 'react';
+import { useState, useEffect, useMemo, useRef } from 'react';
 import { type FinancialContext, type Goal, type Transaction } from './types';
 import GoalCard from './components/GoalCard';
 import Chatbot, { type ChatbotHandle } from './components/Chatbot';

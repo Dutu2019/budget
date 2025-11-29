@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect, useImperativeHandle, forwardRef } from 'react';
+import { useState, useRef, useEffect, useImperativeHandle, forwardRef } from 'react';
 import { type ChatMessage, type FinancialContext, type Transaction,type Goal } from '../types';
 import { initializeChat, getChatSession } from '../services/geminiService';
 import { BotIcon, SendIcon, LoaderIcon } from './Icons';

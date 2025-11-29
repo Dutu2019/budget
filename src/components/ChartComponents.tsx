@@ -151,7 +151,6 @@ export const IncomeExpenseChart: React.FC<IncomeExpenseChartProps> = ({
           } else {
              // Monthly (default)
              // Handle edge cases like Jan 31 -> Feb 28
-             const d = curr.getDate();
              curr.setMonth(curr.getMonth() + 1);
              // Verify day (if we went from Jan 31 to Feb 28/29, setMonth handles it but often shifts to Mar 2/3)
              // Simple version: setMonth usually keeps day if possible, or extends. 
