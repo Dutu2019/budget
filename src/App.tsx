@@ -26,68 +26,68 @@ import ProfileModal from "./components/ProfileModal";
 
 // Mock Data for initial state if empty
 const MOCK_GOALS: Goal[] = [
-  {
-    id: "1",
-    name: "Spring Break Trip",
-    targetAmount: 800,
-    currentAmount: 350,
-    deadline: "2024-03-15",
-    icon: "star",
-    color: "from-pink-500 to-rose-500",
-  },
-  {
-    id: "2",
-    name: "New Laptop",
-    targetAmount: 1200,
-    currentAmount: 400,
-    deadline: "2024-08-20",
-    icon: "laptop",
-    color: "from-cyan-500 to-blue-500",
-  },
+  // {
+  //   id: "1",
+  //   name: "Spring Break Trip",
+  //   targetAmount: 800,
+  //   currentAmount: 350,
+  //   deadline: "2024-03-15",
+  //   icon: "star",
+  //   color: "from-pink-500 to-rose-500",
+  // },
+  // {
+  //   id: "2",
+  //   name: "New Laptop",
+  //   targetAmount: 1200,
+  //   currentAmount: 400,
+  //   deadline: "2024-08-20",
+  //   icon: "laptop",
+  //   color: "from-cyan-500 to-blue-500",
+  // },
 ];
 
 // Student-oriented initial transactions
 const INITIAL_TRANSACTIONS: Transaction[] = [
-  {
-    id: "1",
-    date: new Date().toISOString().split("T")[0],
-    category: "Income",
-    amount: 1200.0,
-    type: "income",
-    merchant: "Part-time Job",
-  },
-  {
-    id: "2",
-    date: new Date().toISOString().split("T")[0],
-    category: "Books",
-    amount: 85.0,
-    type: "expense",
-    merchant: "University Bookstore",
-  },
-  {
-    id: "3",
-    date: new Date(Date.now() - 86400000).toISOString().split("T")[0],
-    category: "Food",
-    amount: 25.5,
-    type: "expense",
-    merchant: "Campus Cafeteria",
-  },
-  {
-    id: "4",
-    date: new Date(Date.now() - 172800000).toISOString().split("T")[0],
-    category: "Transport",
-    amount: 45.0,
-    type: "expense",
-    merchant: "Monthly Bus Pass",
-  },
-  {
-    id: "5",
-    date: new Date(Date.now() - 259200000).toISOString().split("T")[0],
-    category: "Leisure",
-    amount: 15.0,
-    type: "expense",
-    merchant: "Cinema Student Ticket",
-  },
+  // {
+  //   id: "1",
+  //   date: new Date().toISOString().split("T")[0],
+  //   category: "Income",
+  //   amount: 1200.0,
+  //   type: "income",
+  //   merchant: "Part-time Job",
+  // },
+  // {
+  //   id: "2",
+  //   date: new Date().toISOString().split("T")[0],
+  //   category: "Books",
+  //   amount: 85.0,
+  //   type: "expense",
+  //   merchant: "University Bookstore",
+  // },
+  // {
+  //   id: "3",
+  //   date: new Date(Date.now() - 86400000).toISOString().split("T")[0],
+  //   category: "Food",
+  //   amount: 25.5,
+  //   type: "expense",
+  //   merchant: "Campus Cafeteria",
+  // },
+  // {
+  //   id: "4",
+  //   date: new Date(Date.now() - 172800000).toISOString().split("T")[0],
+  //   category: "Transport",
+  //   amount: 45.0,
+  //   type: "expense",
+  //   merchant: "Monthly Bus Pass",
+  // },
+  // {
+  //   id: "5",
+  //   date: new Date(Date.now() - 259200000).toISOString().split("T")[0],
+  //   category: "Leisure",
+  //   amount: 15.0,
+  //   type: "expense",
+  //   merchant: "Cinema Student Ticket",
+  // },
 ];
 
 const StatCard = ({ title, value, subtext, icon, trend }: any) => (
@@ -111,16 +111,16 @@ const StatCard = ({ title, value, subtext, icon, trend }: any) => (
 
 export default function App() {
   const [userName, setUserName] = useState(
-    () => localStorage.getItem("neon_username") || "Student"
+    () => localStorage.getItem("rl_username") || "Student"
   );
 
   const [transactions, setTransactions] = useState<Transaction[]>(() => {
-    const saved = localStorage.getItem("neon_transactions");
+    const saved = localStorage.getItem("rl_transactions");
     return saved ? JSON.parse(saved) : INITIAL_TRANSACTIONS;
   });
 
   const [goals, setGoals] = useState<Goal[]>(() => {
-    const saved = localStorage.getItem("neon_goals");
+    const saved = localStorage.getItem("rl_goals");
     return saved ? JSON.parse(saved) : MOCK_GOALS;
   });
 
@@ -135,13 +135,13 @@ export default function App() {
 
   // Persistence
   useEffect(() => {
-    localStorage.setItem("neon_username", userName);
+    localStorage.setItem("rl_username", userName);
   }, [userName]);
   useEffect(() => {
-    localStorage.setItem("neon_transactions", JSON.stringify(transactions));
+    localStorage.setItem("rl_transactions", JSON.stringify(transactions));
   }, [transactions]);
   useEffect(() => {
-    localStorage.setItem("neon_goals", JSON.stringify(goals));
+    localStorage.setItem("rl_goals", JSON.stringify(goals));
   }, [goals]);
 
   // --- Actions ---
@@ -195,9 +195,9 @@ export default function App() {
   };
 
   const handleResetData = () => {
-    localStorage.removeItem("neon_transactions");
-    localStorage.removeItem("neon_goals");
-    localStorage.removeItem("neon_username");
+    localStorage.removeItem("rl_transactions");
+    localStorage.removeItem("rl_goals");
+    localStorage.removeItem("rl_username");
     window.location.reload();
   };
 
@@ -294,7 +294,7 @@ export default function App() {
         <header className="flex justify-between items-center mb-2">
           <div>
             <h1 className="text-2xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-indigo-400 to-cyan-400">
-              NeonBudget
+              Realife+
             </h1>
             <p className="text-sm text-slate-400">Welcome back, {userName}</p>
           </div>
