@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo, useRef } from "react";
+import React, { useState, useEffect, useMemo, useRef } from "react";
 import { type FinancialContext, type Goal, type Transaction } from "./types";
 import GoalCard from "./components/GoalCard";
 import Chatbot, { type ChatbotHandle } from "./components/Chatbot";
@@ -26,68 +26,68 @@ import ProfileModal from "./components/ProfileModal";
 
 // Mock Data for initial state if empty
 const MOCK_GOALS: Goal[] = [
-  // {
-  //   id: "1",
-  //   name: "Spring Break Trip",
-  //   targetAmount: 800,
-  //   currentAmount: 350,
-  //   deadline: "2024-03-15",
-  //   icon: "star",
-  //   color: "from-pink-500 to-rose-500",
-  // },
-  // {
-  //   id: "2",
-  //   name: "New Laptop",
-  //   targetAmount: 1200,
-  //   currentAmount: 400,
-  //   deadline: "2024-08-20",
-  //   icon: "laptop",
-  //   color: "from-cyan-500 to-blue-500",
-  // },
+  {
+    id: "1",
+    name: "Spring Break Trip",
+    targetAmount: 800,
+    currentAmount: 350,
+    deadline: "2024-03-15",
+    icon: "star",
+    color: "from-pink-500 to-rose-500",
+  },
+  {
+    id: "2",
+    name: "New Laptop",
+    targetAmount: 1200,
+    currentAmount: 400,
+    deadline: "2024-08-20",
+    icon: "laptop",
+    color: "from-cyan-500 to-blue-500",
+  },
 ];
 
 // Student-oriented initial transactions
 const INITIAL_TRANSACTIONS: Transaction[] = [
-  // {
-  //   id: "1",
-  //   date: new Date().toISOString().split("T")[0],
-  //   category: "Income",
-  //   amount: 1200.0,
-  //   type: "income",
-  //   merchant: "Part-time Job",
-  // },
-  // {
-  //   id: "2",
-  //   date: new Date().toISOString().split("T")[0],
-  //   category: "Books",
-  //   amount: 85.0,
-  //   type: "expense",
-  //   merchant: "University Bookstore",
-  // },
-  // {
-  //   id: "3",
-  //   date: new Date(Date.now() - 86400000).toISOString().split("T")[0],
-  //   category: "Food",
-  //   amount: 25.5,
-  //   type: "expense",
-  //   merchant: "Campus Cafeteria",
-  // },
-  // {
-  //   id: "4",
-  //   date: new Date(Date.now() - 172800000).toISOString().split("T")[0],
-  //   category: "Transport",
-  //   amount: 45.0,
-  //   type: "expense",
-  //   merchant: "Monthly Bus Pass",
-  // },
-  // {
-  //   id: "5",
-  //   date: new Date(Date.now() - 259200000).toISOString().split("T")[0],
-  //   category: "Leisure",
-  //   amount: 15.0,
-  //   type: "expense",
-  //   merchant: "Cinema Student Ticket",
-  // },
+  {
+    id: "1",
+    date: new Date().toISOString().split("T")[0],
+    category: "Income",
+    amount: 1200.0,
+    type: "income",
+    merchant: "Part-time Job",
+  },
+  {
+    id: "2",
+    date: new Date().toISOString().split("T")[0],
+    category: "Books",
+    amount: 85.0,
+    type: "expense",
+    merchant: "University Bookstore",
+  },
+  {
+    id: "3",
+    date: new Date(Date.now() - 86400000).toISOString().split("T")[0],
+    category: "Food",
+    amount: 25.5,
+    type: "expense",
+    merchant: "Campus Cafeteria",
+  },
+  {
+    id: "4",
+    date: new Date(Date.now() - 172800000).toISOString().split("T")[0],
+    category: "Transport",
+    amount: 45.0,
+    type: "expense",
+    merchant: "Monthly Bus Pass",
+  },
+  {
+    id: "5",
+    date: new Date(Date.now() - 259200000).toISOString().split("T")[0],
+    category: "Leisure",
+    amount: 15.0,
+    type: "expense",
+    merchant: "Cinema Student Ticket",
+  },
 ];
 
 const StatCard = ({ title, value, subtext, icon, trend }: any) => (
@@ -146,11 +146,10 @@ export default function App() {
 
   // --- Actions ---
 
-  const handleAddTransaction = (newTx: Omit<Transaction, "id" | "date">) => {
+  const handleAddTransaction = (newTx: Omit<Transaction, "id">) => {
     const transaction: Transaction = {
       ...newTx,
       id: Date.now().toString(),
-      date: new Date().toISOString().split("T")[0], // YYYY-MM-DD
     };
     setTransactions((prev) => [transaction, ...prev]);
   };
@@ -187,6 +186,7 @@ export default function App() {
 
     // 2. Create Expense Transaction
     handleAddTransaction({
+      date: new Date().toISOString().split("T")[0],
       amount: amount,
       type: "expense",
       category: "Savings",
@@ -294,7 +294,7 @@ export default function App() {
         <header className="flex justify-between items-center mb-2">
           <div>
             <h1 className="text-2xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-indigo-400 to-cyan-400">
-              Realife+
+              NeonBudget
             </h1>
             <p className="text-sm text-slate-400">Welcome back, {userName}</p>
           </div>
@@ -407,7 +407,7 @@ export default function App() {
                     <>
                       <button
                         onClick={prevGoal}
-                        className="absolute top-1/2 -translate-y-1/2 p-1.5 rounded-full bg-slate-900/50 backdrop-blur-sm border border-white/10 text-white opacity-0 group-hover:opacity-100 transition-opacity hover:bg-slate-800"
+                        className="absolute left-0 top-1/2 -translate-y-1/2 p-1.5 rounded-full bg-slate-900/50 backdrop-blur-sm border border-white/10 text-white opacity-0 group-hover:opacity-100 transition-opacity hover:bg-slate-800"
                       >
                         <ChevronLeftIcon className="w-5 h-5" />
                       </button>

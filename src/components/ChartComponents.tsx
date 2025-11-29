@@ -183,7 +183,7 @@ export const IncomeExpenseChart: React.FC<IncomeExpenseChartProps> = ({
   }, [data]);
 
   return (
-    <div className="h-64 w-full flex gap-2">
+    <div className="h-[80%] w-full flex gap-2">
       {/* Chart Area */}
       <div className="flex-1 min-w-0">
         <ResponsiveContainer width="100%" height="100%">
@@ -272,12 +272,12 @@ export const IncomeExpenseChart: React.FC<IncomeExpenseChartProps> = ({
         <div className="flex-1 relative w-full flex items-center justify-center">
           <input
             type="range"
-            min="1"
+            min="0.5"
             max="50"
             step="0.1"
             value={zoomLevel}
             onChange={(e) => setZoomLevel(parseFloat(e.target.value))}
-            className="absolute w-32 h-1 bg-slate-600 rounded-lg appearance-none cursor-pointer origin-center -rotate-90 accent-indigo-500 hover:accent-indigo-400"
+            className="absolute w-[23rem] h-1 bg-slate-600 rounded-lg appearance-none cursor-pointer origin-center -rotate-90 accent-indigo-500 hover:accent-indigo-400"
           />
         </div>
 
